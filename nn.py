@@ -34,9 +34,10 @@ class NeuralNetwork:
     def load_from_weights(w):
         W = [np.array(e) for e in w]
         layers = []
-        for i in range(len(w)-1):
+        for i in range(len(w)):
             layers.append(len(W[i]))
-        layers.append(len(w[-1]))
+        layers.append(len(w[-1][0]))
+        print("Loading layers:",layers)
         nn = NeuralNetwork(layers)
         nn.W = W
         return nn          

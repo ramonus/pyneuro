@@ -32,11 +32,11 @@ class NeuralNetwork:
         self._init_weight_matrix()
     @staticmethod
     def load_from_weights(w):
-        W = []
+        W = [np.array(e) for e in w]
         layers = []
-        for e in w:
-            W.append(np.array(e))
-            layers.append(len(e))
+        for i in range(len(w)-1):
+            layers.append(len(W[i]))
+        layers.append(len(w[-1]))
         nn = NeuralNetwork(layers)
         nn.W = W
         return nn          
@@ -93,9 +93,9 @@ class Trainer:
                     d = d@w.T*self.nn.activation(self.nn.Z[j-1],deriv=True)
                     self.deltas = add_before(self.deltas,d)
             self.update_weights(learning_rate)
-            trains += sum(Y-yh)**2
-        t = trains*0.5
-        self.trainfit.append(t[0])
+            trains += (Y-yh)**2
+        t = sum(trains)*0.5
+        self.trainfit.append(t)
     def update_weights(self,learning_rate=0.1):
         for i,w in enumerate(self.nn.W):
             self.nn.W[i] = np.subtract(self.nn.W[i],self.dW[i]*learning_rate)

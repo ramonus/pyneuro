@@ -93,7 +93,7 @@ class Trainer:
                     d = d@w.T*self.nn.activation(self.nn.Z[j-1],deriv=True)
                     self.deltas = add_before(self.deltas,d)
             self.update_weights(learning_rate)
-            trains += (Y-yh)**2
+            trains += sum(Y-yh)**2
         t = trains*0.5
         self.trainfit.append(t[0])
     def update_weights(self,learning_rate=0.1):

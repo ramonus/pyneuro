@@ -43,11 +43,6 @@ class NeuralNetwork:
         return nn          
     def _init_weight_matrix(self):
         self.W = []
-        i_layer = self.layers[0]
-        o_layer = self.layers[-1]
-        h_layers = self.layers[1:-1]
-        i = 0
-        fr = i_layer+1
         np.random.seed(int(time.time()))
         for i in range(len(self.layers)-1):
             self.W.append(2*np.random.rand(self.layers[i],self.layers[i+1])-1)

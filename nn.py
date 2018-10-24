@@ -65,7 +65,7 @@ class Trainer:
         self.nn = nn
         self.trainfit = []
     def train(self,xdata,ydata,epochs=1,learning_rate=0.1):
-        with tqdm(total=epochs*len(xdata)) as t:
+        with tqdm(total=epochs*len(xdata),unit="epochs") as t:
             for i in range(epochs):
                 self._train(xdata,ydata,epochs,learning_rate,pb=t)
     def _train(self,xdata,ydata,epochs=1,learning_rate=0.1,*args,**kwargs):

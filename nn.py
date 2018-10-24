@@ -1,4 +1,3 @@
-import conf
 import numpy as np
 import time
 
@@ -31,7 +30,16 @@ class NeuralNetwork:
         self.Z = None
         self.A = None
         self._init_weight_matrix()
-
+    @staticmethod
+    def load_from_weights(w):
+        W = []
+        layers = []
+        for e in w:
+            W.append(np.array(e))
+            layers.append(len(e))
+        nn = NeuralNetwork(layers)
+        nn.W = W
+        return nn          
     def _init_weight_matrix(self):
         self.W = []
         i_layer = self.layers[0]

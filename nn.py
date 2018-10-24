@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from tqdm import tqdm
 
 def sigmoid(x,deriv=False):
     if deriv:
@@ -63,12 +64,11 @@ class Trainer:
     def __init__(self,nn):
         self.nn = nn
         self.trainfit = []
-    def train(self,xdata,ydata,iters=1,learning_rate=0.1):
-        for i in range(iters):
-            # if i%20==0:
-            print("Epoch:",i)
-            self._train(xdata,ydata,iters,learning_rate)
-    def _train(self,xdata,ydata,iters=1,learning_rate=0.1):
+    def train(self,xdata,ydata,epochs=1,learning_rate=0.1):
+        with tqdm(total=epochs*len(xdata)) as t:
+            for i in range(epochs):
+                self._train(xdata,ydata,epochs,learning_rate,pb=t)
+    def _train(self,xdata,ydata,epochs=1,learning_rate=0.1,*args,**kwargs):
         if len(xdata)!=len(ydata):
             raise ValueError("Data input and output are different size!")
         
@@ -88,6 +88,8 @@ class Trainer:
                 if j != 0:
                     d = d@w.T*self.nn.activation(self.nn.Z[j-1],deriv=True)
                     self.deltas = add_before(self.deltas,d)
+            if "pb" in kwargs:
+                kwargs["pb"].update(1)
             self.update_weights(learning_rate)
             trains += (Y-yh)**2
         t = sum(trains)*0.5

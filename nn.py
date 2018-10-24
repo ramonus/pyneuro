@@ -91,8 +91,9 @@ class Trainer:
             if "pb" in kwargs:
                 kwargs["pb"].update(1)
             self.update_weights(learning_rate)
-            trains += (Y-yh)**2
-        t = sum(trains)*0.5
+            err = 0.5*(np.array(Y)-np.array(yh[0]))**2
+            trains += np.linalg.norm(err)
+        t = trains
         self.trainfit.append(t)
     def update_weights(self,learning_rate=0.1):
         for i,w in enumerate(self.nn.W):

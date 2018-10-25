@@ -46,18 +46,21 @@ class NeuralNetwork:
         self.W = []
         np.random.seed(int(time.time()))
         for i in range(len(self.layers)-1):
-            self.W.append(2*np.random.rand(self.layers[i],self.layers[i+1])-1)
+            self.W.append(2*np.random.rand(self.layers[i] + (1 if i<len(self.layers)-2 else 0),self.layers[i+1])-1)
 
     def forward(self,X):
         self.Z = []
         self.A = []
-        A = matrixy(X)
+        A = matrixy(add_after(X,1))
         self.A.append(A)
         for i,w in enumerate(self.W):
             z =A@w
             self.Z.append(matrixy(z))
             A = self.activation(z)
             self.A.append(matrixy(A))
+            if i < len(self.W)-2:
+                A = matrixy(add_after(A,1))
+            
         return A
 
 class Trainer:
@@ -98,3 +101,14 @@ class Trainer:
     def update_weights(self,learning_rate=0.1):
         for i,w in enumerate(self.nn.W):
             self.nn.W[i] = np.subtract(self.nn.W[i],self.dW[i]*learning_rate)
+
+def main():
+    X = [0,2,1]
+    Y = [1]
+    nn = NeuralNetwork([3,2,1])
+    [print(i,":",e.shape) for i,e in enumerate(nn.W)]
+    Yh = nn.forward(X)[0]
+    print("Yh:",Yh)
+
+if __name__=="__main__":
+    main()

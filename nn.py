@@ -22,7 +22,7 @@ def matrixy(arr):
         x = x.ravel().tolist()
     return np.array(x).reshape(1,len(x))
 class NeuralNetwork:
-    def __init__(self,layers,activation=sigmoid):
+    def __init__(self,layers,activation=sigmoid,biased=True):
         if len(layers)<3:
             raise ValueError("Layers must be minimum 3")
         self.activation = activation
@@ -30,37 +30,44 @@ class NeuralNetwork:
         self.W = None
         self.Z = None
         self.A = None
+        self.biased = biased
         self._init_weight_matrix()
     @staticmethod
-    def load_from_weights(w):
+    def load_from_weights(data):
+        w = data["w"]
+        biased = data["biased"]
         W = [np.array(e) for e in w]
         layers = []
         for i in range(len(w)):
             layers.append(len(W[i]))
         layers.append(len(w[-1][0]))
         print("Loading layers:",layers)
-        nn = NeuralNetwork(layers)
+        nn = NeuralNetwork(layers,biased=biased)
         nn.W = W
         return nn          
     def _init_weight_matrix(self):
         self.W = []
         np.random.seed(int(time.time()))
         for i in range(len(self.layers)-1):
-            self.W.append(2*np.random.rand(self.layers[i] + (1 if i<len(self.layers)-2 else 0),self.layers[i+1])-1)
+            dim = [self.layers[i],self.layers[i+1]]
+            if self.biased and i<len(self.layers)-2:
+                dim[0] += 1
+            self.W.append(2*np.random.rand(*dim)-1)
 
     def forward(self,X):
         self.Z = []
         self.A = []
-        A = matrixy(add_after(X,1))
+        A = matrixy(X)
         self.A.append(A)
+        if self.biased:
+            A = matrixy(add_after(A,1))
         for i,w in enumerate(self.W):
             z =A@w
             self.Z.append(matrixy(z))
             A = self.activation(z)
             self.A.append(matrixy(A))
-            if i < len(self.W)-2:
-                A = matrixy(add_after(A,1))
-            
+            if i<len(self.W)-2 and self.biased:
+                A = matrixy(add_after(A,1))            
         return A
 
 class Trainer:
@@ -81,15 +88,28 @@ class Trainer:
         for i,(X,Y) in enumerate(zip(xdata,ydata)):
             X,Y = np.array(X).reshape(1,self.nn.layers[0]),np.array(Y).reshape(1,self.nn.layers[-1])
             yh = self.nn.forward(X) # get yh
+            print("Len Z:",[e.shape for e in self.nn.Z])
             d = -(Y-yh)*self.nn.activation(self.nn.Z[-1],deriv=True)
             self.deltas = add_before(self.deltas,d)
             for j,w in enumerate(self.nn.W[-1::-1]):
-                j = len(self.nn.W)-1-j
+                j = len(self.nn.W)-j-1
+                print("J:",j)
                 A = self.nn.A[j]
+                if self.nn.biased and j<len(self.nn.W)-1:
+                    A = matrixy(add_after(A,1))
+                    w = w[:-1,:]
+                    print("W:",w.shape)
+                print("dW{}: {}x{}".format(j,A.T.shape,d.shape))
                 dw = A.T@d
                 self.dW = add_before(self.dW,dw)
-                if j != 0:
-                    d = d@w.T*self.nn.activation(self.nn.Z[j-1],deriv=True)
+                if j==2:
+                    print(self.nn.biased,j,len(self.nn.W)-2)
+                if j > 0:
+                    act = self.nn.activation(self.nn.Z[j-1],deriv=True)
+                    print("Act:",act.shape)
+                    print("D{}: {}x{}".format(j,d.shape,w.T.shape))
+                    d = d@w.T
+                    d = d*act
                     self.deltas = add_before(self.deltas,d)
             if "pb" in kwargs:
                 kwargs["pb"].update(1)
@@ -99,16 +119,20 @@ class Trainer:
         t = trains
         self.trainfit.append(t)
     def update_weights(self,learning_rate=0.1):
+        print("Len W:",[e.shape for e in self.nn.W])
+        print("Len dW:",[e.shape for e in self.dW])
         for i,w in enumerate(self.nn.W):
-            self.nn.W[i] = np.subtract(self.nn.W[i],self.dW[i]*learning_rate)
-
+            self.nn.W[i] = np.subtract(w,self.dW[i]*learning_rate)
 def main():
-    X = [0,2,1]
-    Y = [1]
-    nn = NeuralNetwork([3,2,1])
+    X = [0,1,1,0,0]
+    Y = [1,1]
+    nn = NeuralNetwork([5,4,3,2])
     [print(i,":",e.shape) for i,e in enumerate(nn.W)]
     Yh = nn.forward(X)[0]
+    trainer = Trainer(nn)
+    trainer.train([X],[Y])
     print("Yh:",Yh)
+    print("Yh after train:",nn.forward(X)[0])
 
 if __name__=="__main__":
     main()

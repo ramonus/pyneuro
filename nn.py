@@ -41,7 +41,6 @@ class NeuralNetwork:
         for i in range(len(w)):
             layers.append(len(W[i]))
         layers.append(len(w[-1][0]))
-        print("Loading layers:",layers)
         nn = NeuralNetwork(layers,biased=biased)
         nn.W = W
         return nn          
@@ -88,26 +87,18 @@ class Trainer:
         for i,(X,Y) in enumerate(zip(xdata,ydata)):
             X,Y = np.array(X).reshape(1,self.nn.layers[0]),np.array(Y).reshape(1,self.nn.layers[-1])
             yh = self.nn.forward(X) # get yh
-            print("Len Z:",[e.shape for e in self.nn.Z])
             d = -(Y-yh)*self.nn.activation(self.nn.Z[-1],deriv=True)
             self.deltas = add_before(self.deltas,d)
             for j,w in enumerate(self.nn.W[-1::-1]):
                 j = len(self.nn.W)-j-1
-                print("J:",j)
                 A = self.nn.A[j]
                 if self.nn.biased and j<len(self.nn.W)-1:
                     A = matrixy(add_after(A,1))
                     w = w[:-1,:]
-                    print("W:",w.shape)
-                print("dW{}: {}x{}".format(j,A.T.shape,d.shape))
                 dw = A.T@d
                 self.dW = add_before(self.dW,dw)
-                if j==2:
-                    print(self.nn.biased,j,len(self.nn.W)-2)
                 if j > 0:
                     act = self.nn.activation(self.nn.Z[j-1],deriv=True)
-                    print("Act:",act.shape)
-                    print("D{}: {}x{}".format(j,d.shape,w.T.shape))
                     d = d@w.T
                     d = d*act
                     self.deltas = add_before(self.deltas,d)
@@ -119,35 +110,17 @@ class Trainer:
         t = trains
         self.trainfit.append(t)
     def update_weights(self,learning_rate=0.1):
-        print("Len W:",[e.shape for e in self.nn.W])
-        print("Len dW:",[e.shape for e in self.dW])
         for i,w in enumerate(self.nn.W):
             self.nn.W[i] = np.subtract(w,self.dW[i]*learning_rate)
 def main():
     X = [0,1,1,0,0]
     Y = [1,1]
     nn = NeuralNetwork([5,4,3,2])
-    [print(i,":",e.shape) for i,e in enumerate(nn.W)]
     Yh = nn.forward(X)[0]
     trainer = Trainer(nn)
     trainer.train([X],[Y])
     print("Yh:",Yh)
     print("Yh after train:",nn.forward(X)[0])
 
-def main():
-    X = [0,1,0,1,1,1] #len = 5
-    Y = [1,1] #len = 2
-    nn = NeuralNetwork([5,4,3,2])
-    print_data(nn)
-    Yh1 = nn.forward(X)
-    trainer = Trainer(nn)
-    trainer.train([X],[Y],100)
-    Yh2 = nn.forward(X)
-    print("Yh1:",Yh1)
-    print("Yh2:",Yh2)
-    import matplotlib.pyplot as plt
-    plt.plot(trainer.trainfit,"b")
-    plt.grid()
-    plt.show()
 if __name__=="__main__":
     main()

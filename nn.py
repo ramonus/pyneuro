@@ -1,5 +1,5 @@
 import numpy as np
-import time
+import time, json
 from tqdm import tqdm
 
 def sigmoid(x,deriv=False):
@@ -41,6 +41,9 @@ class NeuralNetwork:
         for i in range(len(w)):
             layers.append(len(W[i]))
         layers.append(len(w[-1][0]))
+        if biased:
+            for i in range(len(layers)-2):
+                layers[i] -= 1
         nn = NeuralNetwork(layers,biased=biased)
         nn.W = W
         return nn          
@@ -68,6 +71,29 @@ class NeuralNetwork:
             if i<len(self.W)-2 and self.biased:
                 A = matrixy(add_after(A,1))            
         return A
+    def save_to_file(self,fn):
+        try:
+            if not fn.endswith(".json"):
+                fn += ".json"
+            data = {
+                "w":[i.tolist() for i in self.W],
+                "biased": self.biased
+            }
+            with open(fn,"w") as f:
+                f.write(json.dumps(data))
+        except Exception as e:
+            raise e
+    @staticmethod
+    def load_from_file(fn):
+        try:
+            if not ".json" in fn:
+                fn += ".json"
+            with open(fn,"r") as f:
+                data = json.loads(f.read())
+            return NeuralNetwork.load_from_weights(data)
+        except Exception as e:
+            raise e
+
 
 class Trainer:
     def __init__(self,nn):

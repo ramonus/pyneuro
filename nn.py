@@ -134,5 +134,20 @@ def main():
     print("Yh:",Yh)
     print("Yh after train:",nn.forward(X)[0])
 
+def main():
+    X = [0,1,0,1,1,1] #len = 5
+    Y = [1,1] #len = 2
+    nn = NeuralNetwork([5,4,3,2])
+    print_data(nn)
+    Yh1 = nn.forward(X)
+    trainer = Trainer(nn)
+    trainer.train([X],[Y],100)
+    Yh2 = nn.forward(X)
+    print("Yh1:",Yh1)
+    print("Yh2:",Yh2)
+    import matplotlib.pyplot as plt
+    plt.plot(trainer.trainfit,"b")
+    plt.grid()
+    plt.show()
 if __name__=="__main__":
     main()

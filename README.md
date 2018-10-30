@@ -1,12 +1,44 @@
 **Neural Network library**
 
-A simple neural network module that contains a class named NeuralNetwork and a class named Trainer that is made to update the NN weights through backpropagation algorithm
+Python3 Neural Network module. It supports all networks size, each layer can have it's specific activation function, size, and configuration.
+The module supports all sizes for networks.
 
-*Outdated info:*
+The optimizer algorithm it's SGD and currently it's the only available.
 
-
-Needed to run:
-
-```pip3 install numpy tqdm```
-
-`tqdm` only for trainer progressbar
+**Usage**
+1. Clone this module:
+```
+ git clone https://github.com/ramonus/pyneuro.git
+```
+2. Install libraries:
+```
+pip3 install numpy
+```
+or
+```
+pip install numpy
+```
+3. Use it with you'r programs:
+```
+from pyneuro import *
+X = [
+        [0,0],
+        [0,1],
+        [1,0],
+        [1,1]
+    ]
+    Y = [
+        [0],
+        [1],
+        [1],
+        [0]
+    ]
+    nn = input_data(2)
+    nn = fully_connected(nn,2)
+    nn = fully_connected(nn,1)
+    Yh = nn.predict(X)
+    print("Y before fit:",Yh)
+    nn.fit(X,Y,1)
+    Yh2 = nn.predict(X)
+    print("Y after fit :",Yh2)
+```

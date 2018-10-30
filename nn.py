@@ -1,11 +1,34 @@
 import numpy as np
-import time, json
-from tqdm import tqdm
+import time
 
+# activation functions
 def sigmoid(x,deriv=False):
     if deriv:
         return sigmoid(x)*(1-sigmoid(x))
     return 1/(1+np.exp(-x))
+def relu(x,deriv=False):
+
+    if deriv:
+        return (x>0).astype(int)
+    else:
+        return  np.maximum(x,0)
+def softmax(inputs,deriv=False):
+    inputs = inputs[0].copy()
+    if -float("inf") in inputs:
+        inputs = [0 if i==-float("inf") else i for i in inputs]
+        print("Inputs:",inputs)
+    inputs = np.array(inputs)
+    shifti = inputs-np.max(inputs)
+    exps = np.exp(shifti)
+    sm = exps/np.sum(exps)
+    return matrixy(sm)
+def tanh(x,deriv=False):
+    if deriv:
+        return 1-tanh(x)**2
+    else:
+        return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
+
+# helper functions
 def add_before(ls,i):
     if type(ls)!=list:
         ls = ls.ravel().tolist()
@@ -29,26 +52,51 @@ class PyNeural:
         if not arg["is_input"]:
             self.parent = arg["parent"]
             self.biased = arg["biased"]
+            np.random.seed(int(time.time()))
             self._init_weights()
             self.activation = self.choose_activation(arg["activation"])
+        
+        if self.parent == None:
+            self.index = 0
+        else:
+            self.index = self.parent.index+1
     def _forward(self,X):
+        self.X = matrixy(X)
         if self.is_input:
-            return X
+            self.A = self.X
+            self.Z = self.X
+            return self.X
         else:    
             if self.biased:
                 X = add_after(X,1)
             X = matrixy(X)
             self.Z = X@self.W
             self.A = self.activation(self.Z)
-            print("Done:",X.shape,"x",self.W.shape)
             return self.A
     def choose_activation(self,activation):
         if type(activation)==str:
+            activation = activation.lower()
             if activation=="sigmoid":
-                return sigmoid
                 self.act_name = activation
+                return sigmoid
+            elif activation=="relu":
+                self.act_name = activation
+                return relu
+            # elif activation=="softmax":
+            #     self.act_name = activation
+            #     return softmax
+            elif activation=="tanh":
+                self.act_name = activation
+                return tanh
         else:
             return activation
+    def get_layer_list(self):
+        llist = []
+        E = self
+        while E != None:
+            llist.append(E)
+            E = E.parent
+        return llist[::-1]
     def _init_weights(self):
         dim = [self.parent.size, self.size]
         if self.biased:
@@ -85,6 +133,62 @@ class PyNeural:
         for layer in llist:
             X = layer._forward(X)
         return X
+
+    def predict(self,X):
+        Y = []
+        for x in X:
+            Y.append(self.predict_one(x))
+        return Y
+    def calc_delta(self,Y,output=False):
+        if self.is_input:
+            return
+        elif output:
+            Y = matrixy(Y)
+            sp = self.activation(self.Z,deriv=True)
+            self.E = 0.5*(Y-self.A)**2
+            self.D = -(Y-self.A)*sp
+        else:
+            # then the Y needs to be the next layer in forward chain
+            sp = self.activation(self.Z,deriv=True)
+            if self.biased:
+                # extract the bias weight for delta calculation
+                w = Y.W[:-1,:]
+                self.D = Y.D@w.T*sp
+            else:
+                self.D = Y.D@Y.W.T*sp
+    def calc_dW(self):
+        if self.is_input:
+            return
+        A = self.parent.A
+        if self.biased:
+            A = matrixy(add_after(A,1))
+        self.dW = A.T@self.D
+    def optimize(self,learning_rate=0.1):
+        if not self.is_input:
+            self.W = self.W-self.dW*learning_rate
+    def fit_one(self,x,y,learning_rate=0.1):
+        llist = self.get_layer_list()[::-1]
+        isinput = True
+        Yh = self.predict_one(x)
+        for i,layer in enumerate(llist):
+            G = y
+            if not isinput:
+                G = llist[i-1]
+            layer.calc_delta(G,isinput)
+            layer.calc_dW()
+            isinput = False
+        for layer in llist:
+            layer.optimize()
+    def fit(self,X,Y,n_epochs=1,learning_rate=0.1,verbose=False,pb=None):
+        if not isinstance(pb,type(None)):
+            pb.total = len(X)*n_epochs
+        for i in range(n_epochs):
+            for x,y in zip(X,Y):
+                self.fit_one(x,y,learning_rate)
+                if not isinstance(pb,type(None)):
+                    pb.update(1)
+            if verbose!=False and (i+1)%verbose==0:
+                print("Epoch:",i+1)
     def __str__(self):
         lsize = []
         E = self
@@ -96,20 +200,35 @@ class PyNeural:
         return self.__str__()
 
 def input_data(ninput):
-    ilayer = PyNeural(3,True)
+    ilayer = PyNeural(ninput,True)
     return ilayer
 def fully_connected(nn,lsize,activation="sigmoid"):
-    lay = PyNeural(nn,lsize,False,True,activation="sigmoid")
+    lay = PyNeural(nn,lsize,False,True,activation=activation)
     return lay
 
 def main():
-    X = [0,1,1]
-    Y = [1,1]
-    nn = input_data(3)
-    nn = fully_connected(nn,2)
-    nn = fully_connected(nn,1)
-    Yh = nn.predict_one(X)
-    print("Yh:",Yh)
-    print(nn)
+    X = [
+        [0,0],
+        [0,1],
+        [1,0],
+        [1,1]
+    ]
+    Y = [
+        [0],
+        [1],
+        [1],
+        [0]
+    ]
+    nn = input_data(2)
+    nn = fully_connected(nn,2,activation="sigmoid")
+    nn = fully_connected(nn,1,activation="sigmoid")
+    Yh = nn.predict(X)
+    nn.fit(X,Y,n_epochs=10000,learning_rate=0.5,verbose=100)
+    Yh2 = nn.predict(X)
+    print("Y:",Y)
+    print("Y before fit:",[np.round(i[0]).tolist() for i in np.divide(Yh,max(Yh))])
+    print("Y after fit :",[np.round(i[0]).tolist() for i in np.divide(Yh2,max(Yh2))])
+    print("             ",[i[0].tolist() for i in Yh2])
+    print("Done!")
 if __name__=="__main__":
     main()

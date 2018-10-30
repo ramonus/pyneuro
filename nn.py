@@ -32,7 +32,9 @@ class PyNeural:
             self._init_weights()
             self.activation = self.choose_activation(arg["activation"])
     def _forward(self,X):
+        self.X = matrixy(X)
         if self.is_input:
+            self.A = X
             return X
         else:    
             if self.biased:
@@ -40,7 +42,6 @@ class PyNeural:
             X = matrixy(X)
             self.Z = X@self.W
             self.A = self.activation(self.Z)
-            print("Done:",X.shape,"x",self.W.shape)
             return self.A
     def choose_activation(self,activation):
         if type(activation)==str:
@@ -85,6 +86,56 @@ class PyNeural:
         for layer in llist:
             X = layer._forward(X)
         return X
+
+    def predict(self,X):
+        Y = []
+        for x in X:
+            Y.append(self.predict_one(x))
+        return Y
+    def calc_delta(self,Y,output=False):
+        if output:
+            Y = matrixy(Y)
+            sp = self.activation(self.Z,deriv=True)
+            self.D = -(Y-self.A)*sp
+        elif self.is_input:
+            return
+        else:
+            # then the Y needs to be the next layer in forward chain
+            sp = self.activation(self.Z,deriv=True)
+            if self.biased:
+                self.D = Y.D@Y.W[:-1,:].T*sp
+            else:
+                self.D = Y.D@Y.W.T*sp
+    def calc_dW(self):
+        if self.is_input:
+            return
+        A = self.X
+        if self.biased:
+            A = matrixy(add_after(A,1))
+        self.dW = A.T@self.D
+    def optimize(self,learning_rate=0.01):
+        if not self.is_input:
+            self.W = self.W-self.D*learning_rate
+    def fit_one(self,x,y,learning_rate=0.01):
+        llist = []
+        E = self
+        while E!=None:
+            llist.append(E)
+            E = E.parent
+        isinput = True
+        for i,layer in enumerate(llist):
+            G = y
+            if not isinput:
+                G = llist[i-1]
+            layer.calc_delta(G,isinput)
+            layer.calc_dW()
+            layer.optimize()
+            isinput = False
+    def fit(self,X,Y,n_epochs=1,learning_rate=0.01):
+        for i in range(n_epochs):
+            for x,y in zip(X,Y):
+                self.fit_one(x,y,learning_rate)
+            print("Epoch:",i+1)
     def __str__(self):
         lsize = []
         E = self
@@ -96,20 +147,24 @@ class PyNeural:
         return self.__str__()
 
 def input_data(ninput):
-    ilayer = PyNeural(3,True)
+    ilayer = PyNeural(ninput,True)
     return ilayer
 def fully_connected(nn,lsize,activation="sigmoid"):
     lay = PyNeural(nn,lsize,False,True,activation="sigmoid")
     return lay
 
 def main():
-    X = [0,1,1]
+    X = [0,1,0,1,1]
     Y = [1,1]
-    nn = input_data(3)
+    nn = input_data(5)
+    nn = fully_connected(nn,4)
+    nn = fully_connected(nn,3)
     nn = fully_connected(nn,2)
-    nn = fully_connected(nn,1)
     Yh = nn.predict_one(X)
-    print("Yh:",Yh)
     print(nn)
+    nn.fit([X],[Y],100)
+    print("Yh:",Yh)
+    Yh2 = nn.predict_one(X)
+    print("Yh2:",Yh2)
 if __name__=="__main__":
     main()

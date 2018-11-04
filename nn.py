@@ -1,5 +1,5 @@
 import numpy as np
-import time
+import time, json
 
 # activation functions
 def sigmoid(x,deriv=False):
@@ -45,6 +45,8 @@ def matrixy(arr):
 
 class PyNeural:
     def __init__(self,*args,**kwargs):
+        # args can be parent, size, is_input, biased
+        # kwargs can be activation, parent, biased or is_input
         arg = self._parse_args(*args,**kwargs)
         self.size = arg["size"]
         self.is_input = arg["is_input"]
@@ -53,13 +55,45 @@ class PyNeural:
             self.parent = arg["parent"]
             self.biased = arg["biased"]
             np.random.seed(int(time.time()))
-            self._init_weights()
+            self._init_weights() # Init self.W var with random weights
             self.activation = self.choose_activation(arg["activation"])
         
         if self.parent == None:
             self.index = 0
         else:
             self.index = self.parent.index+1
+
+    def save_to_file(self,fn):
+        if not fn.endswith(".json"):
+            fn += ".json"
+        layers = []
+        for layer in self.get_layer_list():
+            data = {}
+            data["size"] = layer.size
+            if not layer.is_input:
+                data["activation"] = layer.act_name
+                data["W"] = json.dumps(self.W.tolist())
+                data["biased"] = self.biased
+            data["is_input"] = layer.is_input
+            layers.append(data)
+        with open(fn,"w") as f:
+            f.write(json.dumps(layers))
+
+    @staticmethod
+    def load_from_file(fn):
+        if not fn.endswith(".json"):
+            fn += ".json"
+        with open(fn,"r") as f:
+            data = json.loads(f.read())
+        for layer in data:
+            if layer["is_input"]:
+                net = PyNeural(layer["size"],is_input=True)
+            else:
+                net = PyNeural(net, layer['size'], is_input=False, biased=layer["biased"], activation=layer["activation"])
+                W = np.array(json.loads(layer["W"]))
+                net.W = W
+        return net
+
     def _forward(self,X):
         self.X = matrixy(X)
         if self.is_input:
@@ -224,6 +258,7 @@ def main():
     nn = fully_connected(nn,1,activation="sigmoid")
     Yh = nn.predict(X)
     nn.fit(X,Y,n_epochs=10000,learning_rate=0.5,verbose=100)
+    nn.save_to_file("testing.json")
     Yh2 = nn.predict(X)
     print("Y:",Y)
     print("Y before fit:",[np.round(i[0]).tolist() for i in np.divide(Yh,max(Yh))])

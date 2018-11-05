@@ -72,8 +72,8 @@ class PyNeural:
             data["size"] = layer.size
             if not layer.is_input:
                 data["activation"] = layer.act_name
-                data["W"] = json.dumps(self.W.tolist())
-                data["biased"] = self.biased
+                data["W"] = json.dumps(layer.W.tolist())
+                data["biased"] = layer.biased
             data["is_input"] = layer.is_input
             layers.append(data)
         with open(fn,"w") as f:

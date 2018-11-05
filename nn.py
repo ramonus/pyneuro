@@ -27,6 +27,11 @@ def tanh(x,deriv=False):
         return 1-tanh(x)**2
     else:
         return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
+def linear(x,deriv=False):
+    if deriv:
+        return 1
+    else:
+        return x
 
 # helper functions
 def add_before(ls,i):

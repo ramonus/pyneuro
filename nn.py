@@ -1,5 +1,5 @@
 import numpy as np
-import time, json
+import time, json, pickle
 
 # activation functions
 def sigmoid(x,deriv=False):
@@ -68,6 +68,18 @@ class PyNeural:
         else:
             self.index = self.parent.index+1
 
+    def full_save_to_file(self,fn):
+        if not fn.endswith(".pickle"):
+            fn += ".pickle"
+        with open(fn,"wb") as f:
+            f.write(pickle.dumps(self))
+    @staticmethod
+    def full_load_from_file(fn):
+        if not fn.endswith(".pickle"):
+            fn += ".pickle"
+        with open(fn, "rb") as f:
+            data = f.read()
+        return pickle.loads(data)
     def save_to_file(self,fn):
         if not fn.endswith(".json"):
             fn += ".json"

@@ -3,6 +3,8 @@
 Python3 Neural Network module. It supports all networks size, each layer can have it's specific activation function, size, and configuration.
 The module supports all sizes for networks.
 
+The only requirement is numpy module in python.
+
 The optimizer algorithm it's SGD and currently it's the only available.
 
 ## Usage
